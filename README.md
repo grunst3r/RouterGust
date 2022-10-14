@@ -1,8 +1,8 @@
 # RouterGust
  Router PHP
-
+Install
 ```
-php -S localhost:8000
+composer require luigu/router-gust:dev-main
 ```
 
 ```php
@@ -60,4 +60,8 @@ $rutas->setError(function(){
 });
 
 $rutas->run();
+```
+
+```
+php -S localhost:8000
 ```
