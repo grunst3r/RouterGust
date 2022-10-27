@@ -19,6 +19,15 @@ class Router extends Request {
         ];
     }
 
+    public function get(string $name, string $path, $callback){
+        $this->add($name, $path, $callback, ['GET']);
+    }
+
+    public function post(string $name, string $path, $callback){
+        $this->add($name, $path, $callback, ['POST']);
+    }
+
+
     private function getDomain(){
         return $this->domain ? $this->domain :$this->inDomain();
     }
@@ -68,10 +77,20 @@ class Router extends Request {
         foreach($this->routers as $ruta){
             if($ruta['name'] == $name){
                 $pattern = $ruta['path'];
+                $pars = [];
                 foreach($parements as $k => $parameto){
-                    $pattern = preg_replace('/{'.$k.'}/', $parameto, $pattern);
+                    if(strpos($pattern, '{'.$k.'}') !== false){
+                        $pattern = str_replace('{'.$k.'}', $parameto, $pattern);
+                    }else{
+                        $pars[$k] = $parameto;
+                    }
                 }
-                return !empty($pattern) ? $this->https().$pattern : $this->https().$ruta['path'];
+
+                $url = $pattern;
+                if (!empty($pars)) {
+                    $url .= '?' . http_build_query($pars);
+                }
+                return  !empty($pattern) ?  $this->https().$url : $this->https().$ruta['path'];
             }
         }
     }
@@ -83,15 +102,29 @@ class Router extends Request {
                 $callback = $router['callback'];
             }
         }
+
+        $oter_paramets = $this->getBody();
+        $this->attributes = array_merge($this->attributes, $oter_paramets);
+        
         if($callback){
             if(is_callable($callback)){
-                echo call_user_func( $callback, ...array_values($this->attributes) );
+                try {
+                    $view = call_user_func_array( $callback, array_values($this->attributes) );
+                    $this->view($view);
+                } catch (\Throwable $th) {
+                    $this->view($th->getMessage());
+                }
             }else{
                 $controller = new $callback[0];
                 if (!is_callable($controller)) {
                     $controller =  [$controller, $callback[1]];
                 }
-                echo $controller(...array_values($this->attributes));
+                try {
+                    $view = call_user_func_array($controller, array_values($this->attributes));
+                    $this->view($view);
+                } catch (\Throwable $th) {
+                    $this->view($th->getMessage());
+                }
             }
         }else{
             header("HTTP/1.0 404 Not Found");
@@ -110,6 +143,18 @@ class Router extends Request {
         else
             $scheme = 'http://';
         return $scheme;
+    }
+
+    public function view($view){
+        if(is_string($view)){
+            echo $view;
+        }elseif(is_array($view)){
+            header('Content-Type: application/json');
+            echo json_encode($view);
+        }elseif(is_object($view)){
+            header('Content-Type: application/json');
+            echo json_encode($view);
+        }
     }
 
 }

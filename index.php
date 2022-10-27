@@ -15,11 +15,15 @@ function route(string $name, array $parements = []){
 class IndexController {
 
     public function index(){
-        return '<h1>Hello world!!</h1> '.route('blog',['slug' => 'avatar', 'id' => 894654]);
+        return '<h1>Hello world!!</h1> '.route('blog',['slug' => 'avatar', 'id' => 894654, 'page' => 2, 'pag' => 2]);
     }
 
-    public function blog($slug,$id){
-        return $slug.'....'.$id;
+    public function blog($slug, $id, $page){
+        return [
+            'slug' => $slug,
+            'id' => $id,
+            'page' => $page
+        ];
     }
 
 }
