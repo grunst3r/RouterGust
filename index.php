@@ -12,17 +12,24 @@ function route(string $name, array $parements = []){
     return $rutas->route($name,$parements);
 }
 
+function isRoute(string $name){
+    global $rutas;
+    return $rutas->isRoute($name);
+}
+
 class IndexController {
 
     public function index(){
         return '<h1>Hello world!!</h1> '.route('blog',['slug' => 'avatar', 'id' => 894654, 'page' => 2, 'pag' => 2]);
     }
 
-    public function blog($slug, $id, $page){
+    public function blog($slug, $id){
         return [
             'slug' => $slug,
             'id' => $id,
-            'page' => $page
+            'page' => $page,
+            'route' => route('blog',['slug' => 'avatar', 'id' => $id, 'page' => $page ]),
+            'isRoute' => isRoute('blog'),
         ];
     }
 
