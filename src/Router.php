@@ -157,4 +157,36 @@ class Router extends Request {
         }
     }
 
+
+    // all routes
+    public function getRouters(){
+        return $this->routers;
+    }
+
+    // is_route
+    public function isRoute($name){
+        $uri = $this->getPath();
+        foreach($this->routers as $router){
+            if($router['name'] == $name){
+                // /user/{id}/edit
+                $pattern = $router['path'];
+                $pars = [];
+                foreach($this->getVarsNames($pattern) as $variable){
+                    $varName = trim($variable, '{\}');
+                    $pattern = str_replace($variable, '(?P<' . $varName . '>[^/]+)', $pattern);
+                }
+                if (preg_match('#^' . $pattern . '$#sD', $uri, $matches)) {
+                    $values = array_filter($matches, static function ($key) {
+                        return is_string($key);
+                    }, ARRAY_FILTER_USE_KEY);
+                    foreach ($values as $key => $value) {
+                        $this->attributes[$key] = $value;
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
