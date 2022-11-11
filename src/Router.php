@@ -107,7 +107,7 @@ class Router extends Request {
         $this->attributes = array_merge($this->attributes, $oter_paramets);
         
         if($callback){
-            if(is_callable($callback)){
+            if(!is_array($callback)){
                 try {
                     $view = call_user_func_array( $callback, array_values($this->attributes) );
                     $this->view($view);
