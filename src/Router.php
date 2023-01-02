@@ -27,15 +27,18 @@ class Router extends Request {
         $this->add($name, $path, $callback, ['POST']);
     }
 
+    public function setDomain(string $domain){
+        $this->domain = $domain;
+    }
 
     private function getDomain(){
-        return $this->domain ? $this->domain :$this->inDomain();
+        return $this->domain ? $this->domain : $this->inDomain();
     }
 
     public function domain(string $domain, callable $callback ){
         $this->domain = $domain;
         $callback($callback);
-        $this->domain = '';
+        //$this->domain = '';
         return $this;
     }
 
@@ -61,16 +64,17 @@ class Router extends Request {
             $regex = str_replace($variable, '(?P<' . $varName . '>[^/]+)', $regex);
         }
 
-        if (in_array($this->getMethod(), $method) && preg_match('#^' . $regex . '$#sD', $this->getPath(), $matches)) {
-            $values = array_filter($matches, static function ($key) {
-                return is_string($key);
-            }, ARRAY_FILTER_USE_KEY);
-            foreach ($values as $key => $value) {
-                $this->attributes[$key] = $value;
+        if ( in_array($this->getMethod(), $method) && preg_match('#^' . $regex . '$#sD', $this->getPath(), $matches) ) {
+            foreach ($matches as $key => $value) {
+                if (is_string($key)) {
+                    $this->attributes[$key] = $value;
+                }
             }
             return true;
+        }else{
+            return false;
         }
-        return false;
+
     }
 
     public function route($name,$parements){
@@ -96,10 +100,14 @@ class Router extends Request {
     }
 
     public function run(){
+
+    
+
         $callback = null;
         foreach($this->routers as $router){
             if( $this->match($router['path'],$router['method']) ){
                 $callback = $router['callback'];
+                break;
             }
         }
 
