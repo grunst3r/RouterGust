@@ -6,7 +6,7 @@ use GustRouter\Router;
 
 
 $rutas = new Router;
-$rutas->setDomain('localhost:808');
+$rutas->setDomain('localhost:8080');
 
 
 function route(string $name, array $parements = []){
@@ -42,12 +42,19 @@ class Subdomain {
 }
 
 
-$rutas->get('home', '/', [IndexController::class, 'index']);
-$rutas->get('blog', '/blog/{slug}/{id}', [IndexController::class, 'blog']);
+class AuthMiddleware {
+    public function handle(){
+        echo 'Middleware';
+    }
+}
+
+
+$rutas->get('/', [IndexController::class, 'index'])->name('home');
+$rutas->get('/blog/{slug}/{id}', [IndexController::class, 'blog'])->name('blog')->middleware(AuthMiddleware::class);
 
 // subdominio wildcard
-$rutas->domain('{domain}.localhost:808', function() use ($rutas){
-    $rutas->get('domain', '/', [Subdomain::class, 'index']);
+$rutas->domain('{domain}.localhost:8080', function() use ($rutas){
+    $rutas->get('/', [Subdomain::class, 'index'])->name('domain');
 });
 
 
@@ -55,6 +62,6 @@ $rutas->setError(function(){
     return "404";
 });
 
-print_r( $rutas->getRouters() );
+print_r($rutas->getRouters());
 
 $rutas->run();

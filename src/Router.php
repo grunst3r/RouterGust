@@ -10,21 +10,23 @@ class Router extends Request {
     private $attributes = [];
     private $error;
 
-    public function add(string $name, string $path, $callback, array $method){
+    public function add(string $path, $callback, array $method){
         $this->routers[] = [
-            'name' => $name,
+            'name' => null,
             'path' => ( $this->group ) ? rtrim($this->getDomain().$this->group.$path, '/\\') : $this->getDomain().$path,
             'callback' => $callback,
             'method' => $method
         ];
     }
 
-    public function get(string $name, string $path, $callback){
-        $this->add($name, $path, $callback, ['GET']);
+    public function get(string $path, $callback){
+        $this->add($path, $callback, ['GET']);
+        return $this;
     }
 
-    public function post(string $name, string $path, $callback){
-        $this->add($name, $path, $callback, ['POST']);
+    public function post(string $path, $callback){
+        $this->add($path, $callback, ['POST']);
+        return $this;
     }
 
     public function setDomain(string $domain){
@@ -46,6 +48,20 @@ class Router extends Request {
         $this->group = $path;
         $callback($callback);
         $this->group = '';
+        return $this;
+    }
+
+    public function name(string $name){
+        $lastRoute = end($this->routers);
+        $lastRoute['name'] = $name;
+        $this->routers[key($this->routers)] = $lastRoute;
+        return $this;
+    }
+
+    public function middleware($middleware){
+        $lastRoute = end($this->routers);
+        $lastRoute['middleware'] = $middleware;
+        $this->routers[key($this->routers)] = $lastRoute;
         return $this;
     }
 
@@ -101,8 +117,6 @@ class Router extends Request {
 
     public function run(){
 
-    
-
         $callback = null;
         foreach($this->routers as $router){
             if( $this->match($router['path'],$router['method']) ){
@@ -115,6 +129,13 @@ class Router extends Request {
         $this->attributes = array_merge($this->attributes, $oter_paramets);
         
         if($callback){
+
+            //middleware
+            if(isset($router['middleware'])){
+                $middleware = new $router['middleware'];
+                return $middleware->handle();
+            }
+
             if(!is_array($callback)){
                 try {
                     $view = call_user_func_array( $callback, array_values($this->attributes) );
