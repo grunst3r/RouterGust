@@ -55,7 +55,9 @@ class Router extends Request {
         if($middleware){
             $routers = $this->routers;
             foreach($routers as $key => $route){
-                $this->routers[$key]['middleware'] = $middleware;
+                if(strpos($route['path'], $this->group) !== false){
+                    $this->routers[$key]['middleware'] = $middleware;
+                }
             }
         }
         $this->group = '';
