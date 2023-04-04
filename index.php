@@ -50,7 +50,7 @@ class AuthMiddleware {
 
 
 $rutas->get('/', [IndexController::class, 'index'])->name('home');
-$rutas->get('/blog/{slug}/{id}', [IndexController::class, 'blog'])->name('blog')->middleware(AuthMiddleware::class);
+$rutas->get('/blog/{slug}/{id}', [IndexController::class, 'blog'])->name('blog');
 
 
 $rutas->group('/admin', function() use ($rutas){
