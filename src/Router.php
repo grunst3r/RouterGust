@@ -15,7 +15,8 @@ class Router extends Request {
             'name' => null,
             'path' => ( $this->group ) ? rtrim($this->getDomain().$this->group.$path, '/\\') : $this->getDomain().$path,
             'callback' => $callback,
-            'method' => $method
+            'method' => $method,
+            'middleware' => null,
         ];
     }
 
@@ -44,9 +45,19 @@ class Router extends Request {
         return $this;
     }
 
-    public function group(string $path, callable $callback ){
+    public function group(string $path, callable $callback, $middleware = null){
+        /* $this->group = $path;
+        $callback($callback);
+        $this->group = ''; */
+        
         $this->group = $path;
         $callback($callback);
+        if($middleware){
+            $routers = $this->routers;
+            foreach($routers as $key => $route){
+                $this->routers[$key]['middleware'] = $middleware;
+            }
+        }
         $this->group = '';
         return $this;
     }

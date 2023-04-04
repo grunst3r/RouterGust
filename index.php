@@ -52,16 +52,33 @@ class AuthMiddleware {
 $rutas->get('/', [IndexController::class, 'index'])->name('home');
 $rutas->get('/blog/{slug}/{id}', [IndexController::class, 'blog'])->name('blog')->middleware(AuthMiddleware::class);
 
+
+$rutas->group('/admin', function() use ($rutas){
+    $rutas->get('/', function(){
+        return 'Admin';
+    });
+    $rutas->get('/blog', function(){
+        return 'Admin Blog';
+    });
+    $rutas->get('/blog/{slug}/{id}', function($slug, $id){
+        return 'Admin Blog '.$slug.' '.$id;
+    });
+},AuthMiddleware::class);
+
 // subdominio wildcard
 $rutas->domain('{domain}.localhost:8080', function() use ($rutas){
     $rutas->get('/', [Subdomain::class, 'index'])->name('domain');
 });
 
 
+
+
 $rutas->setError(function(){
     return "404";
 });
 
+echo "<pre>";
 print_r($rutas->getRouters());
+echo "</pre>";
 
 $rutas->run();
