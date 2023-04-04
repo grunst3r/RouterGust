@@ -146,7 +146,9 @@ class Router extends Request {
             //middleware
             if(isset($router['middleware'])){
                 $middleware = new $router['middleware'];
-                return $middleware->handle();
+                if($middleware->handle()){
+                    return $middleware->handle();
+                }
             }
 
             if(!is_array($callback)){
