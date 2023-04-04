@@ -77,8 +77,4 @@ $rutas->setError(function(){
     return "404";
 });
 
-echo "<pre>";
-print_r($rutas->getRouters());
-echo "</pre>";
-
 $rutas->run();

@@ -6,54 +6,78 @@ composer require luigu/router-gust:dev-main
 ```
 
 ```php
-
 require('vendor/autoload.php');
 
-use GustRouter\Request;
 use GustRouter\Router;
+
+
 $rutas = new Router;
+$rutas->setDomain('localhost:8080');
 
 
-function route(string $name, array $parements = []){ // Helper Global
+function route(string $name, array $parements = []){
     global $rutas;
     return $rutas->route($name,$parements);
+}
+
+function isRoute(string $name){
+    global $rutas;
+    return $rutas->isRoute($name);
 }
 
 class IndexController {
 
     public function index(){
-        return '<h1>Hello world!!</h1> '.route('blog',['slug' => 'avatar', 'id' => 894654]);
+        return '<h1>Hello world!!</h1> '.route('blog',['slug' => 'avatar', 'id' => 894654, 'page' => 2]);
     }
-
-    public function blog($slug,$id){
-        return $slug.'....'.$id;
+    public function blog($slug, $id, $page = 1){
+        return [
+            'slug' => $slug,
+            'id' => $id,
+            'page' => $page,
+            'route' => route('blog',['slug' => 'avatar', 'id' => $id, 'page' => $page ]),
+            'isRoute' => isRoute('blog'),
+        ];
     }
-
 }
 
-$rutas->domain('localhost:8080', function() use($rutas){
-    $rutas->add('home', '/' ,[IndexController::class,'index'],['GET']); // http:localhost:8080/
-    
-    $rutas->add('blog', '/blog/{slug}-{id}',[IndexController::class,'blog'],['GET']);
-    
+class Subdomain {
+    public function index($domain){
+        return '<h1>Hello Domain world!!</h1> '.route('domain',['domain' => $domain]);
+    }
+}
+
+
+class AuthMiddleware {
+    public function handle(){
+        echo 'Middleware';
+    }
+}
+
+
+$rutas->get('/', [IndexController::class, 'index'])->name('home');
+$rutas->get('/blog/{slug}/{id}', [IndexController::class, 'blog'])->name('blog');
+
+
+$rutas->group('/admin', function() use ($rutas){
+    $rutas->get('/', function(){
+        return 'Admin';
+    });
+    $rutas->get('/blog', function(){
+        return 'Admin Blog';
+    });
+    $rutas->get('/blog/{slug}/{id}', function($slug, $id){
+        return 'Admin Blog '.$slug.' '.$id;
+    });
+},AuthMiddleware::class);
+
+// subdominio wildcard
+$rutas->domain('{domain}.localhost:8080', function() use ($rutas){
+    $rutas->get('/', [Subdomain::class, 'index'])->name('domain');
 });
 
-$rutas->domain('subdomain.localhost:8080', function() use($rutas){
-    $rutas->add('home.domain', '/' ,function(){ // http:subdomain.localhost:8080/
-        return "Hello world subdomain!!";
-    },['GET']);
-    
-    $rutas->add('search', '/search' ,function(){ // --- http:subdomain.localhost:8080/search <--- GET or POST
-        $post = new Request;
-        return json_encode($post->getBody());
-    },['GET','POST']);
-});
 
-$rutas->group('/w-admin', function() use($rutas){
-    $rutas->add('admin', '/' ,function(){ // http:localhost:8080/w-admin
-        echo "holaa";
-    },['GET']);
-});
+
 
 $rutas->setError(function(){
     return "404";
