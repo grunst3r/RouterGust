@@ -41,15 +41,11 @@ class Router extends Request {
     public function domain(string $domain, callable $callback ){
         $this->domain = $domain;
         $callback($callback);
-        //$this->domain = '';
+        $this->domain = '';
         return $this;
     }
 
     public function group(string $path, callable $callback, $middleware = null){
-        /* $this->group = $path;
-        $callback($callback);
-        $this->group = ''; */
-        
         $this->group = $path;
         $callback($callback);
         if($middleware){
