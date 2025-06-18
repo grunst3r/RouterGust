@@ -120,7 +120,15 @@ class Router
             }
 
             $callback = $matchedRoute->callback;
-            echo $callback();
+            $parameters = $matchedRoute->parameters ?? [];
+            
+            if (is_array($callback)) {
+                $controller = new $callback[0];
+                $method = $callback[1];
+                echo $controller->$method(...array_values($parameters));
+            } else {
+                echo $callback(...array_values($parameters));
+            }
             return;
         }
 
