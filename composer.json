@@ -1,0 +1,22 @@
+{
+    "name": "luigu/router-gust",
+    "description": "",
+    "autoload": {
+        "psr-4": {
+            "GustRouter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Luis Gustavo"
+        }
+    ],
+    "type": "library",
+    "homepage": "https://github.com/grunst3r/RouterGust",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.2.5"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
