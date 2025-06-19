@@ -157,22 +157,6 @@ $router->setErrorHandler(function($code) {
 $router->setBasePath('/mi-app');
 ```
 
-## 🧪 Testing
-
-El paquete incluye tests PHPUnit. Para ejecutarlos:
-
-```bash
-composer test
-```
-
-## 🤝 Contribución
-
-1. Haz fork del proyecto
-2. Crea tu rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Haz commit de tus cambios (`git commit -am 'Añade nueva funcionalidad'`)
-4. Haz push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
-
 ## 📜 Licencia
 
 RouterGust es software de código abierto licenciado bajo MIT License.
