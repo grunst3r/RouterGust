@@ -18,21 +18,7 @@ $router = new Router($request);
 
 function route(string $name, array $params = []): string {
     global $router;
-
-    foreach ($router->getRoutes() as $r) {
-        if ($r->routeName === $name) {
-            $url = $r->path;
-
-            // Reemplazar parámetros en la ruta si hay
-            foreach ($params as $key => $value) {
-                $url = str_replace("{" . $key . "}", $value, $url);
-            }
-
-            return $url;
-        }
-    }
-
-    throw new Exception("Ruta con nombre '$name' no encontrada.");
+    return $router->url($name, $params);
 }
 
 // Middleware simple de autenticación
@@ -47,8 +33,28 @@ class AuthMiddleware {
 
 // Página de inicio
 $router->get('/', function () {
-    return '<h1>Inicio</h1><a href="'.route('login').'">Login</a>';
-})->name('home');
+    return '<h1>Inicio</h1>
+    <a href="'.route('login').'">Login</a>
+    <a href="'.route('profile', ['slug' => 'mi-perfil']).'">Perfil</a>
+    <a href="'.route('post', ['slug' => 'mi-post']).'">Post</a>
+    <a href="'.route('admin.dashboard').'">Panel de administrador</a>
+    <a href="'.route('home', ['lang' => 'en']).'">Inicio en inglés</a>
+    <a href="'.route('home', ['lang' => 'fr']).'">Inicio en francés</a>
+    <a href="'.route('home', ['lang' => 'es']).'">Inicio en español</a>
+    <a href="'.route('contacto', ['lang' => 'es']).'">Contacto en español</a>
+    ';
+});
+
+
+$router->get('/profile/{slug}', fn() => 'Perfil')->middleware(AuthMiddleware::class)->name('profile');
+
+//post
+$router->get('/post/{slug}', function ($slug) {
+    return [
+        'title' => 'Post: ' . $slug,
+        'content' => 'Contenido del post con slug: ' . $slug
+    ];
+})->name('post');
 
 // Login (formulario)
 $router->get('/login', function () {
@@ -63,17 +69,16 @@ $router->get('/login', function () {
 })->name('login');
 
 // Login (procesar)
-$router->post('/login', function () {
-    $user = $_POST['user'] ?? '';
-    $pass = $_POST['pass'] ?? '';
+$router->post('/login', function (Request $request) {
+    $user = $request->post('user') ?? '';
+    $pass = $request->post('pass') ?? '';
 
     if ($user === 'admin' && $pass === '123') {
         $_SESSION['auth'] = true;
-        header('Location: /admin/dashboard');
+        header('Location: ' . route('admin.dashboard'));
         exit;
     }
-
-    return 'Credenciales inválidas. <a href="/login">Volver</a>';
+    return 'Credenciales inválidas. <a href="' . route('login') . '">Inténtalo de nuevo</a>';
 })->name('login.post');
 
 // Logout
@@ -85,10 +90,10 @@ $router->get('/logout', function () {
 
 // Área protegida
 $router->group([
-    'prefix' => '/admin',
+    'prefix' => '/dashboard',
     'middleware' => AuthMiddleware::class
 ], function($r) {
-    $r->get('/dashboard', function () {
+    $r->get('/', function () {
         return 'Bienvenido al Panel de administrador. <a href="/logout">Cerrar sesión</a>';
     })->name('admin.dashboard');
 });
@@ -97,10 +102,27 @@ $router->group([
 $router->put('/editar', fn() => 'PUT recibido');
 $router->any('/cualquiera', fn() => 'Esto responde a cualquier método HTTP');
 
-// Error 404 personalizado
-$router->setNotFoundHandler(function($request) {
-    http_response_code(404);
-    return '😢 Página no encontrada: ' . $request->getPath();
+
+//// O con un prefijo dinámico
+$router->group(['prefix' => "/{lang}"], function($r) {
+    $r->get('/', fn($lang) => '<b>Inicio en ' . $lang. '</b>')->name('home');
+    $r->get('/contacto', fn() => '<b>Contacto</b>')->name('contacto');
 });
+
+
+// Error 404 personalizado
+/* $router->setErrorHandler(function($code) {
+    switch ($code) {
+        case 404:
+            return '❌ Página no encontrada';
+        case 500:
+            return '💥 Error interno del servidor';
+        default:
+            return '⚠️ Error desconocido';
+    }
+}); */
+
+$url = $router->url('home', ['lang' => 'en']);
+//echo "URL generada: $url\n";
 
 $router->run();

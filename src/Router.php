@@ -4,75 +4,60 @@ namespace GustRouter;
 
 class Router
 {
-    private array $routes = [];
-    private string $currentGroupPrefix = '';
-    private ?string $currentGroupMiddleware = null;
-    private $notFoundHandler;
-    private Request $request;
+    protected array $routes = [];
+    protected string $basePath = '';
+    protected string $domain = '';
+    protected string $defaultDomain = '';
+    protected ?string $currentGroupPrefix = '';
+    protected ?string $currentGroupMiddleware = null;
+    protected ?string $currentGroupDomain = null;
+    protected $errorHandler = null;
+    protected Request $request;
 
     public function __construct(Request $request)
     {
         $this->request = $request;
+        $this->defaultDomain = $this->detectCurrentDomain();
+        $this->domain = $this->defaultDomain;
     }
 
-    public function addRoute(string $method, string $path, $handler): Route
+    public function detectCurrentDomain(): string
     {
-        $route = new Route(
-            $this->currentGroupPrefix . $path,
-            $handler,
-            [$method]
-        );
-
-        if ($this->currentGroupMiddleware) {
-            $route->middleware($this->currentGroupMiddleware);
-        }
-
-        $this->routes[] = $route;
-        return $route;
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $scheme . '://' . $host;
     }
 
-    public function get(string $path, $handler): Route
+    public function setBasePath(string $path): void
     {
-        return $this->addRoute('GET', $path, $handler);
+        $this->basePath = rtrim($path, '/');
     }
 
-    public function post(string $path, $handler): Route
+    public function setDomain(string $domain): void
     {
-        return $this->addRoute('POST', $path, $handler);
+        $this->domain = rtrim($domain, '/');
+        $this->defaultDomain = $this->domain;
     }
 
-    public function put(string $path, $handler): Route
+    public function domain(string $domain, \Closure $callback): void
     {
-        return $this->addRoute('PUT', $path, $handler);
+        $prev = $this->domain;
+        $this->domain = rtrim($domain, '/');
+        $this->currentGroupDomain = $this->domain;
+
+        $callback($this);
+
+        $this->domain = $prev;
+        $this->currentGroupDomain = null;
     }
 
-    public function patch(string $path, $handler): Route
-    {
-        return $this->addRoute('PATCH', $path, $handler);
-    }
-
-    public function delete(string $path, $handler): Route
-    {
-        return $this->addRoute('DELETE', $path, $handler);
-    }
-
-    public function any(string $path, $handler): Route
-    {
-        return $this->addRoute('ANY', $path, $handler);
-    }
-
-    public function group(array $attributes, \Closure $callback): void
+    public function group(array $config, \Closure $callback): void
     {
         $prevPrefix = $this->currentGroupPrefix;
         $prevMiddleware = $this->currentGroupMiddleware;
 
-        if (isset($attributes['prefix'])) {
-            $this->currentGroupPrefix .= $attributes['prefix'];
-        }
-
-        if (isset($attributes['middleware'])) {
-            $this->currentGroupMiddleware = $attributes['middleware'];
-        }
+        $this->currentGroupPrefix .= rtrim($config['prefix'] ?? '', '/');
+        $this->currentGroupMiddleware = $config['middleware'] ?? null;
 
         $callback($this);
 
@@ -80,64 +65,152 @@ class Router
         $this->currentGroupMiddleware = $prevMiddleware;
     }
 
-    private function matches(Route $route): bool
+    public function get(string $path, $callback): Route
     {
-        $path = rtrim($this->request->getPath(), '/');
-        $routePath = rtrim($route->path, '/');
-        $method = $this->request->getMethod();
+        return $this->addRoute(['GET'], $path, $callback);
+    }
 
-        if (!in_array($method, $route->methods) && !in_array('ANY', $route->methods)) {
+    public function post(string $path, $callback): Route
+    {
+        return $this->addRoute(['POST'], $path, $callback);
+    }
+
+    public function put(string $path, $callback): Route
+    {
+        return $this->addRoute(['PUT'], $path, $callback);
+    }
+
+    public function any(string $path, $callback): Route
+    {
+        return $this->addRoute(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], $path, $callback);
+    }
+
+    protected function addRoute(array $methods, string $path, $callback): Route
+    {
+        $fullPath = rtrim(($this->currentGroupPrefix ?: '') . $path, '/');
+        $fullPath = $fullPath ?: '/';
+        $route = new Route($fullPath, $callback, $methods);
+
+        if ($this->currentGroupMiddleware) {
+            $route->middleware($this->currentGroupMiddleware);
+        }
+
+        $route->domain = $this->currentGroupDomain ?? $this->defaultDomain;
+        $this->routes[] = $route;
+
+        return $route;
+    }
+
+    public function setErrorHandler(callable $handler): void
+    {
+        $this->errorHandler = $handler;
+    }
+
+    public function url(string $name, array $params = []): string
+    {
+        foreach ($this->routes as $route) {
+            if ($route->routeName === $name) {
+                $url = $route->path;
+                foreach ($params as $key => $value) {
+                    $url = str_replace("{" . $key . "}", $value, $url);
+                }
+                return ($route->domain ?? $this->defaultDomain) . $this->basePath . $url;
+            }
+        }
+
+        throw new \Exception("Ruta con nombre '$name' no encontrada.");
+    }
+
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+    protected function matches(Route $route): bool
+    {
+        if (!in_array($this->request->method, $route->methods)) {
             return false;
         }
 
-        return $path === $routePath;
+        if ($route->domain && parse_url($this->detectCurrentDomain(), PHP_URL_HOST) !== parse_url($route->domain, PHP_URL_HOST)) {
+            return false;
+        }
+
+        $pattern = preg_replace('#\{([^}]+)\}#', '([^/]+)', $route->path);
+        $pattern = "#^" . $this->basePath . $pattern . "/?$#";
+
+        if (preg_match($pattern, $this->basePath . $this->request->path, $matches)) {
+            array_shift($matches);
+            $route->parameters = $matches;
+            return true;
+        }
+
+        return false;
     }
 
-    public function setNotFoundHandler(callable $handler): void
+    protected function renderResponse($result): void
     {
-        $this->notFoundHandler = $handler;
-    }
-
-    public function getRoutes(): array {
-        return $this->routes;
+        if (is_array($result)) {
+            header('Content-Type: application/json');
+            echo json_encode($result);
+        } else {
+            echo $result;
+        }
     }
 
     public function run(): void
     {
-        $matchedRoute = null;
+        try {
+            $matchedRoute = null;
 
-        foreach ($this->routes as $route) {
-            if ($this->matches($route)) {
-                $matchedRoute = $route;
-                break;
-            }
-        }
-
-        if ($matchedRoute) {
-            if ($matchedRoute->middleware) {
-                $middleware = new $matchedRoute->middleware;
-                $middleware->handle($this->request);
+            foreach ($this->routes as $route) {
+                if ($this->matches($route)) {
+                    $matchedRoute = $route;
+                    break;
+                }
             }
 
-            $callback = $matchedRoute->callback;
-            $parameters = $matchedRoute->parameters ?? [];
-            
-            if (is_array($callback)) {
-                $controller = new $callback[0];
-                $method = $callback[1];
-                echo $controller->$method(...array_values($parameters));
-            } else {
-                echo $callback(...array_values($parameters));
-            }
-            return;
-        }
+            if ($matchedRoute) {
+                if ($matchedRoute->middleware) {
+                    $middleware = new $matchedRoute->middleware;
+                    $middleware->handle($this->request);
+                }
 
-        // Si no se encontró ninguna ruta
-        if ($this->notFoundHandler) {
+                $callback = $matchedRoute->callback;
+                $parameters = $matchedRoute->parameters ?? [];
+
+                $reflection = is_array($callback)
+                    ? new \ReflectionMethod($callback[0], $callback[1])
+                    : new \ReflectionFunction($callback);
+
+                $args = [];
+
+                if ($reflection->getNumberOfParameters() > 0) {
+                    $firstParam = $reflection->getParameters()[0];
+                    if ($firstParam->getType() && $firstParam->getType()->getName() === Request::class) {
+                        $args[] = $this->request;
+                    }
+                }
+
+                $args = array_merge($args, $parameters);
+
+                if (is_array($callback)) {
+                    $controller = new $callback[0];
+                    $method = $callback[1];
+                    $result = $controller->$method(...$args);
+                    $this->renderResponse($result);
+                } else {
+                    $result = $callback(...$args);
+                    $this->renderResponse($result);
+                }
+                return;
+            }
+
             http_response_code(404);
-            echo call_user_func($this->notFoundHandler, $this->request);
-        } else {
-            Response::abort(404, 'Ruta no encontrada');
+            echo $this->errorHandler ? call_user_func($this->errorHandler, 404) : 'Ruta no encontrada';
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo $this->errorHandler ? call_user_func($this->errorHandler, 500) : 'Error del servidor' . ' - ' . $e->getMessage();
         }
     }
 }

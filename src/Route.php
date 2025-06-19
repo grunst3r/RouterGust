@@ -8,6 +8,7 @@ class Route {
     public array $parameters = [];
     public ?string $middleware = null;
     public ?string $routeName = null;
+    public ?string $domain = null;
 
     public function __construct(string $path, $callback, array $methods) {
         $this->path = $path;
@@ -24,6 +25,5 @@ class Route {
         $this->routeName = $name;
         return $this;
     }
-
     
 }
