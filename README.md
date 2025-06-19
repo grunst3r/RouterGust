@@ -19,7 +19,7 @@ RouterGust es un sistema de enrutamiento PHP ligero, rápido y expresivo diseña
 
 ## Instalación ⚙️
 
-Instala el paquete via Composer:
+Instala el paquete vía Composer:
 
 ```bash
 composer require luigu/router-gust
@@ -27,8 +27,9 @@ composer require luigu/router-gust
 
 ## 🚀 Primeros pasos
 
-Configuración básica
-php
+### Configuración básica
+
+```php
 require 'vendor/autoload.php';
 
 use GustRouter\Router;
@@ -44,9 +45,13 @@ $router->get('/', function() {
 
 // Iniciar el router
 $router->run();
-📚 Características
-1. Definición de rutas
-php
+```
+
+## 📚 Características
+
+### 1. Definición de rutas
+
+```php
 // Métodos HTTP soportados
 $router->get('/ruta', $callback);
 $router->post('/ruta', $callback);
@@ -64,16 +69,17 @@ $router->get('/user/{id}', function($id) {
 $router->get('/blog/{slug}/{page?}', function($slug, $page = 1) {
     return "Post: $slug, Página: $page";
 });
-2. Controladores
-php
+```
+
+### 2. Controladores
+
+```php
 class UserController {
     public function show($id) {
-        // Lógica para mostrar usuario
         return "Mostrando usuario $id";
     }
     
     public function store() {
-        // Lógica para crear usuario
         return "Usuario creado";
     }
 }
@@ -81,15 +87,21 @@ class UserController {
 // Usar controladores
 $router->get('/users/{id}', [UserController::class, 'show']);
 $router->post('/users', [UserController::class, 'store']);
-3. Grupos de rutas
-php
+```
+
+### 3. Grupos de rutas
+
+```php
 $router->group(['prefix' => '/admin', 'middleware' => AuthMiddleware::class], function($router) {
     $router->get('/dashboard', fn() => 'Panel de administración');
     $router->get('/users', [AdminController::class, 'users']);
     $router->get('/settings', [AdminController::class, 'settings']);
 });
-4. Middleware
-php
+```
+
+### 4. Middleware
+
+```php
 class AuthMiddleware {
     public function handle($request, $next) {
         if (!isset($_SESSION['user'])) {
@@ -102,21 +114,31 @@ class AuthMiddleware {
 
 // Aplicar middleware
 $router->get('/profile', fn() => 'Perfil')->middleware(AuthMiddleware::class);
-5. Subdominios
-php
+```
+
+### 5. Subdominios
+
+```php
 $router->domain('api.midominio.com', function($router) {
     $router->get('/users', [ApiController::class, 'users']);
     $router->post('/auth', [ApiController::class, 'auth']);
 });
-6. Generación de URLs
-php
+```
+
+### 6. Generación de URLs
+
+```php
 $router->get('/post/{slug}', fn($slug) => "Post: $slug")->name('post.show');
 
 // Generar URL
 $url = $router->url('post.show', ['slug' => 'mi-post']);
-🛠️ Configuración avanzada
-Personalizar manejo de errores
-php
+```
+
+## 🛠️ Configuración avanzada
+
+### Personalizar manejo de errores
+
+```php
 $router->setErrorHandler(function($code) {
     switch ($code) {
         case 404:
@@ -127,27 +149,34 @@ $router->setErrorHandler(function($code) {
             return 'Error desconocido';
     }
 });
-Configuración de base path
-php
+```
+
+### Configuración de base path
+
+```php
 $router->setBasePath('/mi-app');
-🧪 Testing
+```
+
+## 🧪 Testing
+
 El paquete incluye tests PHPUnit. Para ejecutarlos:
 
-bash
+```bash
 composer test
-🤝 Contribución
-Haz fork del proyecto
+```
 
-Crea tu rama (git checkout -b feature/nueva-funcionalidad)
+## 🤝 Contribución
 
-Haz commit de tus cambios (git commit -am 'Añade nueva funcionalidad')
+1. Haz fork del proyecto
+2. Crea tu rama (`git checkout -b feature/nueva-funcionalidad`)
+3. Haz commit de tus cambios (`git commit -am 'Añade nueva funcionalidad'`)
+4. Haz push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
 
-Haz push a la rama (git push origin feature/nueva-funcionalidad)
+## 📜 Licencia
 
-Abre un Pull Request
-
-📜 Licencia
 RouterGust es software de código abierto licenciado bajo MIT License.
 
-🌟 Créditos
+## 🌟 Créditos
+
 Desarrollado por Luis Gustavo
