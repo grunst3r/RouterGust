@@ -111,13 +111,19 @@ class Router
         foreach ($this->routes as $route) {
             if ($route->routeName === $name) {
                 $url = $route->path;
+                $usedKeys = [];
                 foreach ($params as $key => $value) {
-                    $url = str_replace("{" . $key . "}", $value, $url);
+                    if (strpos($url, '{' . $key . '}') !== false) {
+                        $url = str_replace('{' . $key . '}', $value, $url);
+                        $usedKeys[] = $key;
+                    }
                 }
-                return ($route->domain ?? $this->defaultDomain) . $this->basePath . $url;
+                $query = array_diff_key($params, array_flip($usedKeys));
+                $queryString = empty($query) ? '' : '?' . http_build_query($query);
+
+                return ($route->domain ?? $this->defaultDomain) . $this->basePath . $url . $queryString;
             }
         }
-
         throw new \Exception("Ruta con nombre '$name' no encontrada.");
     }
 

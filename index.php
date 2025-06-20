@@ -34,6 +34,8 @@ class AuthMiddleware {
 // Página de inicio
 $router->get('/', function () {
     return '<h1>Inicio</h1>
+    <p>'.route('login',['q' => 'holaa']).'</p>
+    <p>Rutas disponibles:</p>
     <a href="'.route('login').'">Login</a>
     <a href="'.route('profile', ['slug' => 'mi-perfil']).'">Perfil</a>
     <a href="'.route('post', ['slug' => 'mi-post']).'">Post</a>
