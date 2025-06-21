@@ -191,10 +191,11 @@ class Router
 
                 $args = [];
 
-                if ($reflection->getNumberOfParameters() > 0) {
-                    $firstParam = $reflection->getParameters()[0];
-                    if ($firstParam->getType() && $firstParam->getType()->getName() === Request::class) {
-                        $args[] = $this->request;
+                foreach ($reflection->getParameters() as $param) {
+                    $type = $param->getType();
+                    if ($type && !$type->isBuiltin()) {
+                        $className = $type->getName();
+                        $args[] = new $className; // Crea instancia automáticamente
                     }
                 }
 

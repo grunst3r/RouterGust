@@ -16,6 +16,20 @@ $request = new Request();
 $router = new Router($request);
 
 
+class Validator {
+    public static function required($value): bool {
+        return !empty($value);
+    }
+
+    public static function email($value): bool {
+        return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    public static function minLength($value, $length): bool {
+        return strlen($value) >= $length;
+    }
+}
+
 function route(string $name, array $params = []): string {
     global $router;
     return $router->url($name, $params);
@@ -71,9 +85,14 @@ $router->get('/login', function () {
 })->name('login');
 
 // Login (procesar)
-$router->post('/login', function (Request $request) {
+$router->post('/login', function (Request $request, Validator $validator) {
     $user = $request->post('user') ?? '';
     $pass = $request->post('pass') ?? '';
+
+    // Validación simple
+    if (!$validator->required($user) || !$validator->required($pass)) {
+        return 'Usuario y contraseña son obligatorios. <a href="' . route('login') . '">Inténtalo de nuevo</a>';
+    }
 
     if ($user === 'admin' && $pass === '123') {
         $_SESSION['auth'] = true;
