@@ -142,17 +142,32 @@ class Router
             return false;
         }
 
-        $pattern = preg_replace('#\{([^}]+)\}#', '([^/]+)', $route->path);
+        $parameterNames = [];
+
+        $pattern = preg_replace_callback('#\{([^}]+)\}#', function ($matches) use (&$parameterNames) {
+            if (strpos($matches[1], ':') !== false) {
+                [$param, $regex] = explode(':', $matches[1], 2);
+                $parameterNames[] = $param;
+                return '(' . $regex . ')';
+            } else {
+                $parameterNames[] = $matches[1];
+                return '([^/]+)';
+            }
+        }, $route->path);
+
         $pattern = "#^" . $this->basePath . $pattern . "/?$#";
 
         if (preg_match($pattern, $this->basePath . $this->request->path, $matches)) {
             array_shift($matches);
-            $route->parameters = $matches;
+
+            // Asigna los parámetros con su nombre
+            $route->parameters = array_combine($parameterNames, $matches);
             return true;
         }
 
         return false;
     }
+
 
     protected function renderResponse($result): void
     {
