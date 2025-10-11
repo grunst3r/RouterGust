@@ -1,6 +1,6 @@
 {
     "name": "luigu/router-gust",
-    "description": "Mini router PHP estilo Laravel con soporte para middleware, grupos y rutas nombradas.",
+    "description": "Router PHP profesional con soporte para middleware, grupos, inyección de dependencias, subdominios y más.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/grunst3r/RouterGust",
@@ -11,13 +11,25 @@
         }
     ],
     "require": {
-        "php": ">=7.2.5"
+        "php": ">=8.0"
     },
     "autoload": {
         "psr-4": {
             "GustRouter\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "GustRouter\\Tests\\": "tests/"
+        }
+    },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "require-dev": {
+        "phpunit/phpunit": "^12.4"
+    },
+    "scripts": {
+        "test": "phpunit tests/",
+        "test-coverage": "phpunit --coverage-html coverage tests/"
+    }
 }
