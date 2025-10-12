@@ -460,9 +460,19 @@ class Router
         $callback = $route->callback;
         $parameters = $route->parameters ?? [];
 
-        $reflection = is_array($callback)
-            ? new \ReflectionMethod($callback[0], $callback[1])
-            : new \ReflectionFunction($callback);
+        if (is_array($callback)) {
+            // Check if the controller class exists and the method exists
+            if (!is_string($callback[0]) || !class_exists($callback[0])) {
+                throw new \InvalidArgumentException("Controller class does not exist: " . (is_string($callback[0]) ? $callback[0] : gettype($callback[0])));
+            }
+            if (!method_exists($callback[0], $callback[1])) {
+                throw new \InvalidArgumentException("Controller method does not exist: {$callback[0]}::{$callback[1]}");
+            }
+            
+            $reflection = new \ReflectionMethod($callback[0], $callback[1]);
+        } else {
+            $reflection = new \ReflectionFunction($callback);
+        }
 
         $args = [];
 
