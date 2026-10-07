@@ -274,6 +274,40 @@ $router->setErrorHandler(function($code) {
 $router->setBasePath('/mi-app');
 ```
 
+### Modo debug y logging
+
+Por defecto los errores 500 **no** filtran detalles internos al cliente. Para verlos
+en desarrollo habilita el modo debug, y registra los errores en producción con un logger:
+
+```php
+$router->setDebug(true); // solo en desarrollo
+
+$router->setErrorLogger(function (\Throwable $e) {
+    error_log($e->getMessage());
+});
+```
+
+### Cabeceras de seguridad
+
+El router envía por defecto `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy` y `Strict-Transport-Security` (solo bajo HTTPS). Puedes
+desactivarlas o añadir las tuyas:
+
+```php
+$router->enableSecurityHeaders(false);
+
+$router->setSecurityHeaders([
+    'Content-Security-Policy' => "default-src 'self'",
+]);
+```
+
+### Códigos de estado
+
+- `404` cuando la ruta no existe.
+- `405` (con cabecera `Allow`) cuando la ruta existe pero el método no.
+- `400` para parámetros/patrones inválidos.
+- `500` para errores internos, sin filtrar detalles salvo en modo debug.
+
 ## 🧪 Pruebas
 
 RouterGust incluye una suite completa de pruebas:

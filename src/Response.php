@@ -33,15 +33,29 @@ class Response
         return $this;
     }
 
-    public function send(): void
+    public function send(bool $withBody = true): void
     {
         http_response_code($this->statusCode);
 
-        foreach ($this->headers as $name => $value) {
-            header("$name: $value");
+        if (!headers_sent()) {
+            foreach ($this->headers as $name => $value) {
+                header("$name: $value");
+            }
         }
 
-        echo $this->content;
+        if ($withBody) {
+            echo $this->content;
+        }
+    }
+
+    public function getStatusCode(): int
+    {
+        return $this->statusCode;
+    }
+
+    public function getContent(): string
+    {
+        return $this->content;
     }
 
     public static function abort(int $code, string $message = ''): void

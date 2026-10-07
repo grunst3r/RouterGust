@@ -478,4 +478,134 @@ class RouterTest extends TestCase
         $this->expectOutputString('Dashboard for tenant: tenant1');
         $testRouter->run();
     }
+
+    public function testHeadAndOptionsMethods(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/ping';
+        $_SERVER['REQUEST_METHOD'] = 'OPTIONS';
+
+        $router = new Router(new Request());
+        $router->options('/ping', fn() => 'options ok');
+
+        $this->expectOutputString('options ok');
+        $router->run();
+    }
+
+    public function testHeadRequestFallsBackToGetWithoutBody(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/page';
+        $_SERVER['REQUEST_METHOD'] = 'HEAD';
+
+        $router = new Router(new Request());
+        $router->get('/page', fn() => 'body content');
+
+        $this->expectOutputString('');
+        $router->run();
+    }
+
+    public function testMethodNotAllowedReturns405(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/submit';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->post('/submit', fn() => 'created');
+        $router->setErrorHandler(fn($code) => "Error $code");
+
+        $this->expectOutputString('Error 405');
+        $router->run();
+    }
+
+    public function testHeaderLookupAndJsonDetection(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['CONTENT_TYPE'] = 'application/json; charset=utf-8';
+
+        $request = new Request();
+
+        $this->assertSame('application/json; charset=utf-8', $request->header('Content-Type'));
+        $this->assertSame('application/json; charset=utf-8', $request->header('content-type'));
+        $this->assertTrue($request->isJson());
+
+        unset($_SERVER['CONTENT_TYPE']);
+    }
+
+    public function testInputPrefersGetOverPost(): void
+    {
+        $_GET['q'] = 'from-get';
+        $_POST['q'] = 'from-post';
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $request = new Request();
+
+        $this->assertSame('from-get', $request->input('q'));
+
+        unset($_GET['q'], $_POST['q']);
+    }
+
+    public function testUrlGenerationWithLegacyRegexPlaceholder(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->get('/user/{id:\d+}', fn($id) => $id)->name('user.regex');
+
+        $this->assertStringEndsWith('/user/42', $router->url('user.regex', ['id' => 42]));
+    }
+
+    public function testUrlGenerationRejectsInvalidParameter(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->get('/user/{id:\d+}', fn($id) => $id)->name('user.regex2');
+
+        $this->expectException(\GustRouter\Exceptions\RouteValidationException::class);
+        $router->url('user.regex2', ['id' => 'abc']);
+    }
+
+    public function testUrlGenerationThrowsWhenParameterMissing(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->get('/post/{slug}', fn($slug) => $slug)->name('post.slug');
+
+        $this->expectException(\GustRouter\Exceptions\RouteValidationException::class);
+        $router->url('post.slug');
+    }
+
+    public function testServerErrorDoesNotLeakDetailsByDefault(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/boom';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->get('/boom', function () {
+            throw new \RuntimeException('secret details');
+        });
+
+        $this->expectOutputString('Server Error');
+        $router->run();
+    }
+
+    public function testDebugModeShowsErrorMessage(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/boom2';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $router = new Router(new Request());
+        $router->setDebug(true);
+        $router->get('/boom2', function () {
+            throw new \RuntimeException('secret details');
+        });
+
+        $this->expectOutputString('Server Error - secret details');
+        $router->run();
+    }
 }
